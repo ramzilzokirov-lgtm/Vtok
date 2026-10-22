@@ -48,6 +48,9 @@ jobs:
       - name: Run Android lint and compile Kotlin
         run: gradle --no-daemon --stacktrace --warning-mode all lintDebug
 
+      - name: Run JVM unit tests
+        run: gradle --no-daemon --stacktrace testDebugUnitTest
+
       - name: Build debug APK
         run: gradle --no-daemon --stacktrace --warning-mode all assembleDebug
 
