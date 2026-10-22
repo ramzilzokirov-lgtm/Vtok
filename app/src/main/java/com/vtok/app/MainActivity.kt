@@ -58,6 +58,8 @@ private fun VTokApp(context: Context) {
     var autoRenewStreak by remember { mutableStateOf(prefs.getBoolean("auto_renew_streak", false)) }
     var customAccent by remember { mutableIntStateOf(prefs.getInt("accent", 0xFFB99A36.toInt())) }
     var profileBackground by remember { mutableStateOf(prefs.getString("profile_background", "") ?: "") }
+    var regionEnabled by remember { mutableStateOf(prefs.getBoolean("region_enabled", false)) }
+    var regionCountry by remember { mutableStateOf(prefs.getString("region_country", "NL") ?: "NL") }
     val accent = Color(customAccent)
     val surfaceColor = if (liquidGlass) Glass else Color(0xFF171717)
     val borderColor = if (liquidGlass) Color(0x55FFFFFF) else Color.Transparent
@@ -83,6 +85,15 @@ private fun VTokApp(context: Context) {
             })
             return@MaterialTheme
         }
+        if (subPage == "region") {
+            RegionSettingsScreen(
+                accent = accent, enabled = regionEnabled, countryCode = regionCountry,
+                onEnabled = { regionEnabled = it; saveBool("region_enabled", it) },
+                onCountry = { regionCountry = it; prefs.edit().putString("region_country", it).apply() },
+                onBack = { subPage = "settings" }
+            )
+            return@MaterialTheme
+        }
         if (subPage == "settings") {
             SettingsScreen(
                 accent = accent, liquidGlass = liquidGlass, surfaceColor = surfaceColor, borderColor = borderColor,
@@ -95,7 +106,7 @@ private fun VTokApp(context: Context) {
                 onAutoRenew = { autoRenewStreak = it; saveBool("auto_renew_streak", it) },
                 onAccent = { customAccent = it; prefs.edit().putInt("accent", it).apply() },
                 onProfileBackground = { profileBackground = it; prefs.edit().putString("profile_background", it).apply() },
-                onDevelopers = { subPage = "developers" }, onPlugins = { subPage = "plugins" }, onBadges = { subPage = "badges" }, onUpdates = { subPage = "updates" },
+                onDevelopers = { subPage = "developers" }, onPlugins = { subPage = "plugins" }, onBadges = { subPage = "badges" }, onUpdates = { subPage = "updates" }, onRegion = { subPage = "region" },
                 onBack = { subPage = "" }
             )
             return@MaterialTheme
@@ -189,7 +200,7 @@ private fun SettingsScreen(
     profileBackground: String, onGlass: (Boolean) -> Unit, onMuted: (Boolean) -> Unit,
     onAnimations: (Boolean) -> Unit, onReminder: (Boolean) -> Unit, onAutoRenew: (Boolean) -> Unit,
     onAccent: (Int) -> Unit, onProfileBackground: (String) -> Unit, onDevelopers: () -> Unit,
-    onPlugins: () -> Unit, onBadges: () -> Unit, onUpdates: () -> Unit, onBack: () -> Unit
+    onPlugins: () -> Unit, onBadges: () -> Unit, onUpdates: () -> Unit, onRegion: () -> Unit, onBack: () -> Unit
 ) {
     var showAccentOptions by remember { mutableStateOf(false) }
     var backgroundInput by remember { mutableStateOf(profileBackground) }
@@ -218,6 +229,8 @@ private fun SettingsScreen(
                     }
                 }
             }
+            item { SectionTitle("Регион и доступ", accent) }
+            item { SettingsCard(surfaceColor, borderColor) { Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Tune, null, tint = accent); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text("Выбор страны и обход", color = Color.White, fontWeight = FontWeight.SemiBold); Text("Регион MargyT · страна сохраняется на устройстве", color = Muted, fontSize = 12.sp) }; TextButton(onClick = onRegion) { Text("Открыть") } } } }
             item { SectionTitle("Огонёк", accent) }
             item { ToggleCard("Напоминать об огоньке", "Локальная настройка напоминания; уведомления ещё не подключены", streakReminder, accent, surfaceColor, borderColor, onReminder) }
             item { ToggleCard("Автопродление огонька", "Переключатель сохранён, но продлевать огонёк автоматически без официальной функции TikTok приложение не может", autoRenewStreak, accent, surfaceColor, borderColor, onAutoRenew) }
