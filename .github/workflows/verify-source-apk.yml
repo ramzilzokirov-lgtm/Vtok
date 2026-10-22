@@ -1,0 +1,70 @@
+name: Verify TikTok source APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      asset_url:
+        description: "Direct URL to a publicly downloadable APK asset"
+        required: true
+        type: string
+        default: "https://github.com/ramzilzokirov-lgtm/VTok/releases/download/Main/TikTok_v47.2.41_arm64-v8a.apk"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Download and inspect APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y unzip python3
+
+      - name: Download APK from supplied release URL
+        env:
+          ASSET_URL: ${{ inputs.asset_url }}
+        run: |
+          set -euo pipefail
+          case "$ASSET_URL" in
+            https://github.com/*/releases/download/*|https://objects.githubusercontent.com/*) ;;
+            *) echo "Use a public GitHub Releases asset URL." >&2; exit 2 ;;
+          esac
+          curl --fail --location --retry 3 --retry-delay 2 "$ASSET_URL" -o source.apk
+          test -s source.apk
+          ls -lh source.apk
+          sha256sum source.apk | tee sha256.txt
+
+      - name: Validate ZIP/APK structure and all compressed entries
+        run: |
+          python3 - <<'PY'
+          import sys, zipfile
+          path = "source.apk"
+          try:
+              with zipfile.ZipFile(path) as z:
+                  bad = z.testzip()
+                  names = z.namelist()
+                  print(f"Entries: {len(names)}")
+                  print(f"Has AndroidManifest.xml: {'AndroidManifest.xml' in names}")
+                  print(f"Has classes.dex: {'classes.dex' in names}")
+                  if bad:
+                      print(f"CORRUPT_ENTRY: {bad}")
+                      sys.exit(1)
+                  if "AndroidManifest.xml" not in names or "classes.dex" not in names:
+                      print("Not a recognizable Android APK structure")
+                      sys.exit(1)
+                  print("ZIP_CRC_CHECK: PASS")
+          except Exception as e:
+              print(f"APK_CHECK_FAILED: {type(e).__name__}: {e}")
+              sys.exit(1)
+          PY
+
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-apk-verification
+          path: |
+            sha256.txt
+          if-no-files-found: ignore
+          retention-days: 14
