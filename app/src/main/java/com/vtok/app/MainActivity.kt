@@ -49,9 +49,9 @@ private fun VTokApp() {
         }) { padding ->
             when (selectedTab) {
                 0 -> FeedScreen(Modifier.padding(padding))
-                1 -> SimpleScreen("Поиск", "Поиск TikTok появится после подключения поддерживаемого интерфейса.")
-                2 -> SimpleScreen("Создание", "Публикация требует авторизованного доступа TikTok.")
-                else -> SimpleScreen("Профиль", "Подключение настоящего аккаунта TikTok ещё не настроено.")
+                1 -> SimpleScreen("Поиск", "Поиск TikTok ещё не подключён. Этот экран не выполняет сетевые запросы.", Modifier.padding(padding))
+                2 -> SimpleScreen("Создание", "Публикация доступна только после настройки разрешённой интеграции TikTok.", Modifier.padding(padding))
+                else -> SimpleScreen("Профиль", "Настоящий аккаунт TikTok пока не подключён. Вход и синхронизация профиля не работают.", Modifier.padding(padding))
             }
         }
     }
@@ -98,8 +98,8 @@ private fun ActionBubble(icon: androidx.compose.ui.graphics.vector.ImageVector, 
 }
 
 @Composable
-private fun SimpleScreen(title: String, message: String) {
-    Column(Modifier.fillMaxSize().background(Ink).padding(24.dp), verticalArrangement = Arrangement.Center) {
+private fun SimpleScreen(title: String, message: String, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxSize().background(Ink).padding(24.dp), verticalArrangement = Arrangement.Center) {
         Text(title, color = Gold, fontSize = 30.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
         Text(message, color = Color.White, fontSize = 16.sp)
