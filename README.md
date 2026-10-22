@@ -26,3 +26,8 @@ The workflow installs Gradle 8.9 explicitly, validates the Gradle project, compi
 - Add real, consent-based TikTok authentication and Display API support if the developer app is approved and credentials are configured.
 - Add configurable muted themes, animations, profile customization, badges and a documented plugin interface without falsely presenting unfinished features as functional.
 - Add signed update delivery only after release signing, integrity checks and rollback behavior are defined.
+
+
+## MargyT source audit
+
+The supplied MargyT source archive has been reviewed. The compatibility and licensing gate, port sequence, and known limitations are documented in [docs/MARGYT_PORT_PLAN.md](docs/MARGYT_PORT_PLAN.md). This is an audit/plan commit, **not** a completed TikTok APK modification. The exact compatible original APK is still required before patching and smoke testing.
