@@ -1,0 +1,41 @@
+name: VTok build check
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: TikTok variant
+        required: true
+        default: original
+        type: choice
+        options:
+          - original
+          - asia
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout VTok
+        uses: actions/checkout@v4
+      - name: Checkout open-source patcher
+        uses: actions/checkout@v4
+        with:
+          repository: thelok1s/tiktok-rv
+          ref: main
+          path: upstream
+          submodules: recursive
+      - name: Verify patcher source and Android build tools
+        run: |
+          set -euo pipefail
+          test -f upstream/.github/workflows/tiktok-patcher.yml
+          test -d upstream/revanced-patches
+          test -f upstream/revanced-patches/gradlew
+          echo "VTok repository: $GITHUB_REPOSITORY"
+          echo "Variant requested: ${{ inputs.variant }}"
+          echo "Open-source patcher checkout verified."
+          echo "This check does not produce an APK. APK build requires successful source download, patching, and signing."
