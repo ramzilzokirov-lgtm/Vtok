@@ -1,0 +1,107 @@
+name: Build MargyT APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      asset_url:
+        description: "Direct HTTPS URL of the TikTok APK release asset"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    name: Patch TikTok APK with MargyT
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout VTok
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download source APK
+        env:
+          ASSET_URL: ${{ inputs.asset_url }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          u = urlparse(os.environ["ASSET_URL"])
+          if u.scheme != "https" or not u.netloc:
+              raise SystemExit("asset_url must be a valid HTTPS URL")
+          PY
+          curl --fail --location --retry 3 --retry-all-errors --connect-timeout 30 --max-time 2400 "$ASSET_URL" -o source.apk
+          test -s source.apk
+          sha256sum source.apk | tee source-sha256.txt
+          python - <<'PY'
+          import zipfile
+          with zipfile.ZipFile("source.apk") as z:
+              bad = z.testzip()
+              if bad:
+                  raise SystemExit("Corrupt APK entry: " + bad)
+              names = z.namelist()
+              assert "AndroidManifest.xml" in names, "Missing AndroidManifest.xml"
+              assert any(n.endswith(".dex") for n in names), "No DEX files"
+          print("Source APK ZIP integrity: PASS")
+          PY
+
+      - name: Fetch MargyT patcher source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/narezany/MargyT.git margyt
+          test -f margyt/README.md
+          test -f margyt/pyproject.toml -o -f margyt/setup.py -o -f margyt/requirements.txt
+          find margyt -maxdepth 2 -type f | head -80
+
+      - name: Install patcher dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          if [ -f margyt/requirements.txt ]; then python -m pip install -r margyt/requirements.txt; fi
+          if [ -f margyt/pyproject.toml ] || [ -f margyt/setup.py ]; then python -m pip install ./margyt; fi
+
+      - name: Apply MargyT patch
+        run: |
+          set -euo pipefail
+          python -m margyt source.apk
+
+      - name: Validate patched APK
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, zipfile, glob
+          candidates = [p for p in glob.glob("*.apk") if p != "source.apk"]
+          candidates += [p for p in glob.glob("margyt/**/*.apk", recursive=True)]
+          if not candidates:
+              raise SystemExit("Patcher did not produce a separate APK. Check patcher output/logs.")
+          apk = max(set(candidates), key=os.path.getsize)
+          with zipfile.ZipFile(apk) as z:
+              bad = z.testzip()
+              if bad:
+                  raise SystemExit(f"Patched APK is corrupt at {bad}")
+              names = z.namelist()
+              if "AndroidManifest.xml" not in names or not any(n.endswith(".dex") for n in names):
+                  raise SystemExit("Patched APK is missing required Android files")
+          with open("patched-apk-path.txt", "w") as f:
+              f.write(apk)
+          print(f"Validated patched APK: {apk} ({os.path.getsize(apk)} bytes)")
+          PY
+
+      - name: Upload patched APK and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: margyt-build-output
+          path: |
+            *.apk
+            source-sha256.txt
+            patched-apk-path.txt
+          if-no-files-found: warn
+          retention-days: 14
