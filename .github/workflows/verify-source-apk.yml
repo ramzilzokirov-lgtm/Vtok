@@ -1,0 +1,83 @@
+name: Verify TikTok source APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      asset_url:
+        description: "Direct HTTPS URL of the APK release asset"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Download and verify APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download APK
+        env:
+          ASSET_URL: ${{ inputs.asset_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          u = urlparse(os.environ["ASSET_URL"])
+          if u.scheme != "https" or not u.netloc:
+              raise SystemExit("ERROR: asset_url must be a valid HTTPS URL")
+          print("URL format: OK")
+          PY
+          curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 30 --max-time 1500 "$ASSET_URL" --output source.apk
+          test -s source.apk
+          echo "Downloaded bytes: $(stat -c %s source.apk)" | tee verification-report.txt
+          sha256sum source.apk | tee -a verification-report.txt
+
+      - name: Check APK ZIP integrity
+        id: verify
+        shell: bash
+        run: |
+          set -uo pipefail
+          python3 - <<'PY'
+          import sys, zipfile
+          report = "verification-report.txt"
+          errors = []
+          try:
+              with zipfile.ZipFile("source.apk") as z:
+                  names = z.namelist()
+                  with open(report, "a", encoding="utf-8") as f:
+                      f.write(f"ZIP entries: {len(names)}\\n")
+                      f.write(f"AndroidManifest.xml present: {'AndroidManifest.xml' in names}\\n")
+                      f.write(f"classes.dex present: {'classes.dex' in names}\\n")
+                  for name in names:
+                      try:
+                          with z.open(name) as stream:
+                              while stream.read(1024 * 1024):
+                                  pass
+                      except Exception as e:
+                          errors.append(f"{name}: {type(e).__name__}: {e}")
+                  if "AndroidManifest.xml" not in names:
+                      errors.append("Missing AndroidManifest.xml")
+                  if not any(n.endswith(".dex") and (n == "classes.dex" or n.startswith("classes") and n[6:-4].isdigit()) for n in names):
+                      errors.append("No DEX file found")
+          except Exception as e:
+              errors.append(f"Could not read APK as ZIP: {type(e).__name__}: {e}")
+          with open(report, "a", encoding="utf-8") as f:
+              f.write("RESULT: " + ("FAIL\\n" if errors else "PASS - all entries read\\n"))
+              for e in errors:
+                  f.write("ERROR: " + e + "\\n")
+          print("\\n".join(errors) if errors else "PASS: all ZIP entries read without errors")
+          sys.exit(1 if errors else 0)
+          PY
+
+      - name: Save verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-apk-verification-report
+          path: verification-report.txt
+          if-no-files-found: warn
+          retention-days: 14
