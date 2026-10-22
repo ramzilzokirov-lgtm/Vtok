@@ -45,13 +45,25 @@ jobs:
       - name: Validate Gradle configuration
         run: gradle --no-daemon --stacktrace tasks
 
-      - name: Compile Kotlin and build debug APK
+      - name: Run Android lint and compile Kotlin
+        run: gradle --no-daemon --stacktrace --warning-mode all lintDebug
+
+      - name: Build debug APK
         run: gradle --no-daemon --stacktrace --warning-mode all assembleDebug
 
       - name: Verify APK exists and is non-empty
         run: |
           test -s app/build/outputs/apk/debug/app-debug.apk
           ls -lh app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload lint reports (including on failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VTok-lint-reports
+          path: app/build/reports/lint-results*
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
