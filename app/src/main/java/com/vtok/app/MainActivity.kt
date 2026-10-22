@@ -73,6 +73,16 @@ private fun VTokApp(context: Context) {
             PluginsScreen(accent, liquidGlass, surfaceColor, borderColor, onBack = { subPage = "" })
             return@MaterialTheme
         }
+        if (subPage == "badges") {
+            BadgesScreen(accent, liquidGlass, surfaceColor, borderColor, onBack = { subPage = "" })
+            return@MaterialTheme
+        }
+        if (subPage == "updates") {
+            UpdatesScreen(accent, liquidGlass, surfaceColor, borderColor, onBack = { subPage = "" }, onOpen = { url ->
+                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            })
+            return@MaterialTheme
+        }
         if (subPage == "settings") {
             SettingsScreen(
                 accent = accent, liquidGlass = liquidGlass, surfaceColor = surfaceColor, borderColor = borderColor,
@@ -85,7 +95,7 @@ private fun VTokApp(context: Context) {
                 onAutoRenew = { autoRenewStreak = it; saveBool("auto_renew_streak", it) },
                 onAccent = { customAccent = it; prefs.edit().putInt("accent", it).apply() },
                 onProfileBackground = { profileBackground = it; prefs.edit().putString("profile_background", it).apply() },
-                onDevelopers = { subPage = "developers" }, onPlugins = { subPage = "plugins" },
+                onDevelopers = { subPage = "developers" }, onPlugins = { subPage = "plugins" }, onBadges = { subPage = "badges" }, onUpdates = { subPage = "updates" },
                 onBack = { subPage = "" }
             )
             return@MaterialTheme
@@ -179,7 +189,7 @@ private fun SettingsScreen(
     profileBackground: String, onGlass: (Boolean) -> Unit, onMuted: (Boolean) -> Unit,
     onAnimations: (Boolean) -> Unit, onReminder: (Boolean) -> Unit, onAutoRenew: (Boolean) -> Unit,
     onAccent: (Int) -> Unit, onProfileBackground: (String) -> Unit, onDevelopers: () -> Unit,
-    onPlugins: () -> Unit, onBack: () -> Unit
+    onPlugins: () -> Unit, onBadges: () -> Unit, onUpdates: () -> Unit, onBack: () -> Unit
 ) {
     var showAccentOptions by remember { mutableStateOf(false) }
     var backgroundInput by remember { mutableStateOf(profileBackground) }
@@ -225,6 +235,8 @@ private fun SettingsScreen(
                 }
             }
             item { SettingsCard(surfaceColor, borderColor) { Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Code, null, tint = accent); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text("Плагины", color = Color.White, fontWeight = FontWeight.SemiBold); Text("Каталог и документация интерфейса", color = Muted, fontSize = 12.sp) }; TextButton(onClick = onPlugins) { Text("Открыть") } } } }
+            item { SettingsCard(surfaceColor, borderColor) { Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Favorite, null, tint = accent); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text("Бейджи", color = Color.White, fontWeight = FontWeight.SemiBold); Text("TESTER, OG/OLD, FRIENDS, TEAM", color = Muted, fontSize = 12.sp) }; TextButton(onClick = onBadges) { Text("Открыть") } } } }
+            item { SettingsCard(surfaceColor, borderColor) { Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Share, null, tint = accent); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text("Обновления VTok", color = Color.White, fontWeight = FontWeight.SemiBold); Text("Страница релизов проекта", color = Muted, fontSize = 12.sp) }; TextButton(onClick = onUpdates) { Text("Открыть") } } } }
             item { SettingsCard(surfaceColor, borderColor) { Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Person, null, tint = accent); Spacer(Modifier.width(12.dp)); Column(Modifier.weight(1f)) { Text("Разработчики", color = Color.White, fontWeight = FontWeight.SemiBold); Text("Автор, помощник, версия и ссылки", color = Muted, fontSize = 12.sp) }; TextButton(onClick = onDevelopers) { Text("Открыть") } } } }
             item { Text("VTok 0.1 · Настройки сохраняются на устройстве", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(vertical = 18.dp)) }
         }
@@ -317,5 +329,52 @@ private fun SimpleScreen(title: String, message: String, modifier: Modifier = Mo
         Text(title, color = accent, fontSize = 30.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
         Text(message, color = Color.White, fontSize = 16.sp)
+    }
+}
+
+
+@Composable
+private fun BadgesScreen(accent: Color, glass: Boolean, surface: Color, border: Color, onBack: () -> Unit) {
+    val badgeList = listOf("TESTER" to "Тестирует новые функции", "OG / OLD" to "Ранний участник", "FRIENDS" to "Друг проекта", "TEAM" to "Команда проекта")
+    Column(Modifier.fillMaxSize().background(Ink).padding(18.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Назад", tint = Color.White) }
+            Text("Бейджи VTok", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+        }
+        Text("Предпросмотр типов бейджей", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp, bottom = 14.dp))
+        badgeList.forEach { (name, description) ->
+            GlassCard(glass, surface, border) {
+                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(color = accent.copy(alpha = .18f), shape = RoundedCornerShape(9.dp), modifier = Modifier.border(1.dp, accent, RoundedCornerShape(9.dp))) {
+                        Text(name, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column { Text(description, color = Color.White); Text("Выдача ещё не подключена", color = Muted, fontSize = 11.sp) }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+        Text("Владелец должен выдавать бейджи вручную. Для настоящей защиты от подделки нужна серверная проверка прав; этот экран пока только показывает типы.", color = Muted, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun UpdatesScreen(accent: Color, glass: Boolean, surface: Color, border: Color, onBack: () -> Unit, onOpen: (String) -> Unit) {
+    Column(Modifier.fillMaxSize().background(Ink).padding(18.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Назад", tint = Color.White) }
+            Text("Обновления VTok", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(16.dp))
+        GlassCard(glass, surface, border) {
+            Column(Modifier.fillMaxWidth().padding(18.dp)) {
+                Text("Установлена версия 0.1", color = accent, fontWeight = FontWeight.Bold)
+                Text("Проверка обновлений внутри приложения и автоматическая установка пока не реализованы.", color = Color.White, modifier = Modifier.padding(top = 8.dp))
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = { onOpen("https://github.com/ramzilzokirov-lgtm/VTok/releases") }, colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Ink)) { Text("Открыть релизы GitHub") }
+                TextButton(onClick = { onOpen("https://github.com/ramzilzokirov-lgtm/VTok") }) { Text("Исходный код проекта") }
+            }
+        }
     }
 }
