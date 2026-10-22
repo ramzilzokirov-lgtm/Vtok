@@ -49,9 +49,9 @@ jobs:
               with zipfile.ZipFile("source.apk") as z:
                   names = z.namelist()
                   with open(report, "a", encoding="utf-8") as f:
-                      f.write(f"ZIP entries: {len(names)}\\n")
-                      f.write(f"AndroidManifest.xml present: {'AndroidManifest.xml' in names}\\n")
-                      f.write(f"classes.dex present: {'classes.dex' in names}\\n")
+                      f.write(f"ZIP entries: {len(names)}\n")
+                      f.write(f"AndroidManifest.xml present: {'AndroidManifest.xml' in names}\n")
+                      f.write(f"classes.dex present: {'classes.dex' in names}\n")
                   for name in names:
                       try:
                           with z.open(name) as stream:
@@ -66,10 +66,10 @@ jobs:
           except Exception as e:
               errors.append(f"Could not read APK as ZIP: {type(e).__name__}: {e}")
           with open(report, "a", encoding="utf-8") as f:
-              f.write("RESULT: " + ("FAIL\\n" if errors else "PASS - all entries read\\n"))
+              f.write("RESULT: " + ("FAIL\n" if errors else "PASS - all entries read\n"))
               for e in errors:
-                  f.write("ERROR: " + e + "\\n")
-          print("\\n".join(errors) if errors else "PASS: all ZIP entries read without errors")
+                  f.write("ERROR: " + e + "\n")
+          print("\n".join(errors) if errors else "PASS: all ZIP entries read without errors")
           sys.exit(1 if errors else 0)
           PY
 
