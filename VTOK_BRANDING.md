@@ -1,18 +1,20 @@
-# VTok
+# VTok branding and upstream attribution
 
-VTok is the custom TikTok-client mod project for this repository.
+## VTok identity
 
-## Branding targets
+- Project name: VTok.
+- Accent target: muted gold (`#FFC857`) on graphite/dark surfaces.
+- Do not use the MargyT name or icon as VTok's own app name or identity.
+- Do not claim that the current Compose shell is a functional TikTok client.
 
-- App display name: VTok
-- Keep the original TikTok sign-in and account flow intact.
-- Apply VTok-specific launcher icon, app label, settings entry, and subdued dark/yellow accent styling where supported by the patch source.
-- Do not publish a build unless the APK archive passes ZIP integrity checks, the signature verifies, and required patches are confirmed in the build log.
+## MargyT-derived builds
 
-## Build status
+The patcher is sourced from [the original MargyT repository](https://git.narez.xyz/narezany/MargyT) and is licensed under GPL-3.0 with the additional terms in `ADDITIONAL-TERMS.md`.
 
-No verified VTok-branded APK is currently attached to this repository. A workflow run and a downloadable artifact must be checked before calling a build complete.
+Any derived build must:
+- retain the MargyT author's visible, working legal-notice section in the mod settings at the required prominence;
+- clearly state in that same section that the build is modified and is not released by the MargyT author;
+- preserve applicable source and license obligations;
+- avoid using MargyT's name or icon as VTok's own branding.
 
-## Upstream
-
-The open-source patcher being evaluated is [thelok1s/tiktok-rv](https://github.com/thelok1s/tiktok-rv). Review its license and upstream changes before redistributing derived builds.
+The current workflow produces a **VTok-based evaluation artifact** using the upstream patcher. It does not establish that the APK has been installed or tested on a device. Do not call a build complete until Actions passes and runtime testing has been performed.
