@@ -24,6 +24,12 @@ jobs:
       - name: Checkout VTok
         uses: actions/checkout@v4
 
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -73,8 +79,11 @@ jobs:
           test -f upstream/margyt/build.py
           test -f upstream/LICENSE
           test -f upstream/ADDITIONAL-TERMS.md
+          test -f upstream/build.sh
           python -m py_compile upstream/margyt/*.py
-          echo "Upstream source files and Python syntax: PASS"
+          java -version
+          python --version
+          echo "Upstream source files, license notices, and Python syntax: PASS"
 
       - name: Patch source APK
         run: |
@@ -102,6 +111,13 @@ jobs:
           print(f"Patched APK ZIP integrity: PASS ({os.path.getsize(path)} bytes)")
           PY
           sha256sum build/vtok-margyt-based-evaluation.apk | tee patched-apk-sha256.txt
+          {
+            echo "Build result: PASS"
+            echo "Branding: VTok-based evaluation build"
+            echo "Upstream: MargyT (GPL-3.0 with ADDITIONAL-TERMS.md)"
+            echo "Source APK SHA-256: $(cut -d' ' -f1 source-sha256.txt)"
+            echo "Patched APK SHA-256: $(cut -d' ' -f1 patched-apk-sha256.txt)"
+          } | tee build-report.txt
 
       - name: Upload evaluation APK and reports
         if: always()
@@ -112,5 +128,6 @@ jobs:
             build/vtok-margyt-based-evaluation.apk
             source-sha256.txt
             patched-apk-sha256.txt
+            build-report.txt
           if-no-files-found: warn
           retention-days: 14
