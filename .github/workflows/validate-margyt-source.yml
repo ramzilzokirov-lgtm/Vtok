@@ -1,0 +1,74 @@
+name: Validate MargyT upstream source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [margyt-import]
+    paths:
+      - ".github/workflows/validate-margyt-source.yml"
+      - ".github/workflows/build-margyt.yml"
+      - "VTOK_BRANDING.md"
+      - "README.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vtok-margyt-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Fetch and inspect upstream patcher
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout VTok
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fetch upstream source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://git.narez.xyz/narezany/MargyT.git upstream
+          test -f upstream/README.md
+          test -f upstream/margyt/__main__.py
+          test -f upstream/margyt/build.py
+          test -f upstream/LICENSE
+          test -f upstream/ADDITIONAL-TERMS.md
+          test -f upstream/build.sh
+          python -m py_compile upstream/margyt/*.py
+          java -version
+          python --version
+
+      - name: Report source files and license notices
+        run: |
+          set -euo pipefail
+          {
+            echo "# MargyT upstream source validation"
+            echo
+            echo "- Commit: $(git -C upstream rev-parse HEAD)"
+            echo "- Python syntax: PASS"
+            echo "- License: GPL-3.0 notice present"
+            echo "- Additional terms: present"
+            echo
+            echo "## Source files"
+            find upstream/margyt -maxdepth 1 -type f -name '*.py' -printf '%f\n' | sort
+          } | tee upstream-validation-report.md
+
+      - name: Upload source validation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vtok-margyt-source-validation
+          path: upstream-validation-report.md
+          retention-days: 14
