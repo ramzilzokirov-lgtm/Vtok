@@ -3,7 +3,7 @@ name: VTok Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, margyt-import]
   pull_request:
     branches: [main]
 
