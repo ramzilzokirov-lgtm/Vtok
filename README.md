@@ -1,28 +1,26 @@
 # VTok
 
-VTok is an Android project intended to customize the TikTok experience, not a replacement social network pretending to be TikTok.
+VTok is an early-stage Android project exploring a customized TikTok experience using the open-source MargyT APK patcher.
 
-## Reality check
+## Current state
 
-The current app is an early Android Compose shell. It is **not an official TikTok APK, is not connected to a TikTok account, and does not yet provide the real For You feed, likes, comments, follows, upload, or account sync**. No successful APK build is claimed until GitHub Actions finishes successfully.
+- The Compose app in `app/` is a UI prototype. It does **not** provide TikTok sign-in, feed, posting, likes, comments, or account sync.
+- The `Build MargyT-based APK for VTok evaluation` workflow patches a user-supplied compatible TikTok APK and uploads the result as a temporary GitHub Actions artifact.
+- A successful patcher run is not proof of installation, account login, or runtime compatibility. Test the resulting APK on a spare device before relying on it.
+- No TikTok APK is included in this repository. Only use an APK you are legally entitled to use and do not commit it to Git.
 
-TikTok's production Android source code is proprietary. The repository cannot become a modified official TikTok client from an empty project alone. To work on a real existing client, the original APK/source must be supplied and assessed for what can be modified lawfully and technically. Without it, development can continue only through supported integrations and original code.
+## Build a patcher artifact
 
-TikTok's official Display API can show an authorizing user's profile and public videos after the developer app is approved and the user grants the required scopes. It does not provide a general replacement for TikTok's native For You feed or all native interaction features. See [Display API overview](https://developers.tiktok.com/docs/en/display-api-overview) and [Get started](https://developers.tiktok.com/docs/en/display-api-get-started).
+1. Open **Actions → Build MargyT-based APK for VTok evaluation**.
+2. Select **Run workflow**.
+3. Enter a direct HTTPS URL for a compatible universal `arm64-v8a` APK (not an app bundle or split APK).
+4. Wait for the workflow to finish and download `vtok-margyt-based-evaluation` from the run's artifacts.
+5. Check `build-report.txt` and both SHA-256 files. The artifact is retained for 14 days.
 
-## Build and verify
+The workflow fetches the upstream MargyT source from its original repository, checks its license notices and Python syntax, runs the patcher with a muted gold accent, and verifies the resulting APK archive. It does not publish a GitHub Release or install the APK on a device.
 
-GitHub Actions builds a debug APK on pushes to `main`, pull requests, and manual runs:
+## Upstream attribution and license
 
-1. Open **Actions → VTok Android APK**.
-2. Open the newest run and verify that **Compile and verify APK** is green.
-3. Download the **VTok-debug-apk** artifact from that run.
+This project uses and evaluates [MargyT](https://git.narez.xyz/narezany/MargyT), licensed under GPL-3.0 with additional terms in its `ADDITIONAL-TERMS.md`. Any redistributed modified version must comply with the GPL and those additional terms, including keeping the author's legal-notice section visible and working and clearly stating that the modified build is not from the MargyT author. VTok must not present the MargyT name or icon as its own branding.
 
-The workflow installs Gradle 8.9 explicitly, validates the Gradle project, compiles the app and verifies that a non-empty APK exists before publishing the artifact. A green build proves only that this project compiles; it does not mean the official TikTok service integration is complete.
-
-## Planned work
-
-- Confirm the intended route: modify a user-provided original TikTok APK (if technically and legally feasible), or build an authorized companion/integration.
-- Add real, consent-based TikTok authentication and Display API support if the developer app is approved and credentials are configured.
-- Add configurable muted themes, animations, profile customization, badges and a documented plugin interface without falsely presenting unfinished features as functional.
-- Add signed update delivery only after release signing, integrity checks and rollback behavior are defined.
+The original TikTok app and its services are proprietary and are not part of this repository. VTok is not affiliated with TikTok or the MargyT author.
