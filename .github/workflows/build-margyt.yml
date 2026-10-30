@@ -117,7 +117,7 @@ jobs:
           echo "===== MargyT build implementation ====="
           sed -n '1,360p' upstream/margyt/build.py
           echo "===== DEX assembly references ====="
-          grep -RniE 'smali|baksmali|assemble|dex|apktool|d8|multidex' upstream/margyt upstream/build.sh | head -240
+          (grep -RniE 'smali|baksmali|assemble|dex|apktool|d8|multidex' upstream/margyt upstream/build.sh | head -240) || true
 
       - name: Patch source APK with MargyT
         env:
