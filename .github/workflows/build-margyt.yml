@@ -44,6 +44,16 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install MargyT Python dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install Pillow
+          python - <<'PY'
+          from PIL import Image
+          print("Pillow dependency check: PASS")
+          PY
+
       - name: Validate source URL
         env:
           ASSET_URL: ${{ inputs.asset_url || 'https://d.apkpure.net/b/APK/com.zhiliaoapp.musically?nc=arm64-v8a%2Carmeabi-v7a&sv=23&versionCode=2024705030' }}
