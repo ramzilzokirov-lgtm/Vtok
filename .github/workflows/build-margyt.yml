@@ -11,7 +11,7 @@ on:
       asset_url:
         description: "Direct HTTPS URL to TikTok universal APK. Defaults to the pinned TikTok 47.5.3 APK."
         required: false
-        default: "https://d.apkpure.com/b/APK/com.zhiliaoapp.musically?versionCode=2024705030"
+        default: "https://d.apkpure.net/b/APK/com.zhiliaoapp.musically?nc=arm64-v8a%2Carmeabi-v7a&sv=23&versionCode=2024705030"
         type: string
 
 permissions:
@@ -46,7 +46,7 @@ jobs:
 
       - name: Validate source URL
         env:
-          ASSET_URL: ${{ inputs.asset_url || 'https://d.apkpure.com/b/APK/com.zhiliaoapp.musically?versionCode=2024705030' }}
+          ASSET_URL: ${{ inputs.asset_url || 'https://d.apkpure.net/b/APK/com.zhiliaoapp.musically?nc=arm64-v8a%2Carmeabi-v7a&sv=23&versionCode=2024705030' }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -59,7 +59,7 @@ jobs:
 
       - name: Download and validate pinned TikTok APK
         env:
-          ASSET_URL: ${{ inputs.asset_url || 'https://d.apkpure.com/b/APK/com.zhiliaoapp.musically?versionCode=2024705030' }}
+          ASSET_URL: ${{ inputs.asset_url || 'https://d.apkpure.net/b/APK/com.zhiliaoapp.musically?nc=arm64-v8a%2Carmeabi-v7a&sv=23&versionCode=2024705030' }}
           EXPECTED_SHA256: ${{ env.EXPECTED_SOURCE_SHA256 }}
         run: |
           set -euo pipefail
