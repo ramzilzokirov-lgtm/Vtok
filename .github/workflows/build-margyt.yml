@@ -112,6 +112,12 @@ jobs:
           java -version
           python --version
           echo "Upstream source files, license notices, and Python syntax: PASS"
+          echo "===== MargyT entry point ====="
+          sed -n '1,260p' upstream/margyt/__main__.py
+          echo "===== MargyT build implementation ====="
+          sed -n '1,360p' upstream/margyt/build.py
+          echo "===== DEX assembly references ====="
+          grep -RniE 'smali|baksmali|assemble|dex|apktool|d8|multidex' upstream/margyt upstream/build.sh | head -240
 
       - name: Patch source APK with MargyT
         env:
