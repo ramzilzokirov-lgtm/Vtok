@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -54,6 +55,9 @@ private fun VTokApp(context: Context) {
     var liquidGlass by remember { mutableStateOf(prefs.getBoolean("liquid_glass", true)) }
     var mutedColors by remember { mutableStateOf(prefs.getBoolean("muted_colors", true)) }
     var animations by remember { mutableStateOf(prefs.getBoolean("animations", true)) }
+    var oledProtection by remember { mutableStateOf(prefs.getBoolean("oled_protection", false)) }
+    var nothingGlyphs by remember { mutableStateOf(prefs.getBoolean("nothing_glyphs", true)) }
+    var selectedRegion by remember { mutableStateOf(prefs.getString("selected_region", "Авто") ?: "Авто") }
     var streakReminder by remember { mutableStateOf(prefs.getBoolean("streak_reminder", false)) }
     var autoRenewStreak by remember { mutableStateOf(prefs.getBoolean("auto_renew_streak", false)) }
     var customAccent by remember { mutableIntStateOf(prefs.getInt("accent", 0xFFB99A36.toInt())) }
@@ -86,11 +90,14 @@ private fun VTokApp(context: Context) {
         if (subPage == "settings") {
             SettingsScreen(
                 accent = accent, liquidGlass = liquidGlass, surfaceColor = surfaceColor, borderColor = borderColor,
-                mutedColors = mutedColors, animations = animations, streakReminder = streakReminder,
+                mutedColors = mutedColors, animations = animations, oledProtection = oledProtection, nothingGlyphs = nothingGlyphs, selectedRegion = selectedRegion, streakReminder = streakReminder,
                 autoRenewStreak = autoRenewStreak, profileBackground = profileBackground,
                 onGlass = { liquidGlass = it; saveBool("liquid_glass", it) },
                 onMuted = { mutedColors = it; saveBool("muted_colors", it) },
                 onAnimations = { animations = it; saveBool("animations", it) },
+                onOledProtection = { oledProtection = it; saveBool("oled_protection", it) },
+                onNothingGlyphs = { nothingGlyphs = it; saveBool("nothing_glyphs", it) },
+                onRegion = { selectedRegion = it; prefs.edit().putString("selected_region", it).apply() },
                 onReminder = { streakReminder = it; saveBool("streak_reminder", it) },
                 onAutoRenew = { autoRenewStreak = it; saveBool("auto_renew_streak", it) },
                 onAccent = { customAccent = it; prefs.edit().putInt("accent", it).apply() },
@@ -119,7 +126,7 @@ private fun VTokApp(context: Context) {
             }
         ) { padding ->
             when (selectedTab) {
-                0 -> FeedScreen(Modifier.padding(padding), accent, liquidGlass, surfaceColor, borderColor, animations)
+                0 -> FeedScreen(Modifier.padding(padding), accent, liquidGlass, surfaceColor, borderColor, animations, oledProtection, nothingGlyphs)
                 1 -> SimpleScreen("Поиск", "Поиск TikTok ещё не подключён. Этот экран не выполняет сетевые запросы.", Modifier.padding(padding), accent)
                 2 -> SimpleScreen("Создание", "Публикация доступна только после настройки разрешённой интеграции TikTok.", Modifier.padding(padding), accent)
                 else -> ProfileScreen(Modifier.padding(padding), accent, liquidGlass, surfaceColor, borderColor, profileBackground, onSettings = { subPage = "settings" })
@@ -129,10 +136,23 @@ private fun VTokApp(context: Context) {
 }
 
 @Composable
-private fun FeedScreen(modifier: Modifier, accent: Color, glass: Boolean, surface: Color, border: Color, animations: Boolean) {
+private fun FeedScreen(modifier: Modifier, accent: Color, glass: Boolean, surface: Color, border: Color, animations: Boolean, oledProtection: Boolean, nothingGlyphs: Boolean) {
+    var shiftIndex by remember { mutableIntStateOf(0) }
+    LaunchedEffect(oledProtection) {
+        if (oledProtection) {
+            while (true) { delay(45_000); shiftIndex = (shiftIndex + 1) % 5 }
+        } else shiftIndex = 0
+    }
+    val shifts = listOf(0 to 0, 1 to 0, 0 to 1, -1 to 0, 0 to -1)
+    val shift = if (oledProtection) shifts[shiftIndex] else (0 to 0)
+    val pixelShift = Modifier.offset(x = shift.first.dp, y = shift.second.dp)
     Box(modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF242424), Ink, Color(0xFF1B1B1B))))) {
-        Column(Modifier.align(Alignment.Center).padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("VTok", color = accent, fontSize = 42.sp, fontWeight = FontWeight.Black)
+        Column(Modifier.align(Alignment.Center).then(pixelShift).padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                if (nothingGlyphs) Text("⠿", color = accent, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.width(if (nothingGlyphs) 8.dp else 0.dp))
+                Text("VTok", color = accent, fontSize = 42.sp, fontWeight = FontWeight.Black)
+            }
             Spacer(Modifier.height(10.dp))
             Text("Твой TikTok — с твоими настройками", color = Color.White, fontSize = 17.sp)
             Spacer(Modifier.height(12.dp))
@@ -185,14 +205,16 @@ private fun ProfileScreen(modifier: Modifier, accent: Color, glass: Boolean, sur
 @Composable
 private fun SettingsScreen(
     accent: Color, liquidGlass: Boolean, surfaceColor: Color, borderColor: Color,
-    mutedColors: Boolean, animations: Boolean, streakReminder: Boolean, autoRenewStreak: Boolean,
+    mutedColors: Boolean, animations: Boolean, oledProtection: Boolean, nothingGlyphs: Boolean, selectedRegion: String, streakReminder: Boolean, autoRenewStreak: Boolean,
     profileBackground: String, onGlass: (Boolean) -> Unit, onMuted: (Boolean) -> Unit,
-    onAnimations: (Boolean) -> Unit, onReminder: (Boolean) -> Unit, onAutoRenew: (Boolean) -> Unit,
+    onAnimations: (Boolean) -> Unit, onOledProtection: (Boolean) -> Unit, onNothingGlyphs: (Boolean) -> Unit, onRegion: (String) -> Unit, onReminder: (Boolean) -> Unit, onAutoRenew: (Boolean) -> Unit,
     onAccent: (Int) -> Unit, onProfileBackground: (String) -> Unit, onDevelopers: () -> Unit,
     onPlugins: () -> Unit, onBadges: () -> Unit, onUpdates: () -> Unit, onBack: () -> Unit
 ) {
     var showAccentOptions by remember { mutableStateOf(false) }
+    var showRegionOptions by remember { mutableStateOf(false) }
     var backgroundInput by remember { mutableStateOf(profileBackground) }
+    val regions = listOf("Авто", "Россия", "Германия", "США", "Великобритания", "Япония", "Корея", "Турция")
     val accents = listOf(0xFFB99A36.toInt(), 0xFF7C83FD.toInt(), 0xFF55C9A5.toInt(), 0xFFE879A9.toInt(), 0xFFB7B7B7.toInt())
     Column(Modifier.fillMaxSize().background(Ink)) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -204,6 +226,23 @@ private fun SettingsScreen(
             item { ToggleCard("Жидкое стекло", "Полупрозрачные панели и тонкие границы", liquidGlass, accent, surfaceColor, borderColor, onGlass) }
             item { ToggleCard("Приглушённые цвета", "Менее яркая минималистичная палитра", mutedColors, accent, surfaceColor, borderColor, onMuted) }
             item { ToggleCard("Анимации интерфейса", "Можно отключить для более спокойной работы", animations, accent, surfaceColor, borderColor, onAnimations) }
+            item { ToggleCard("Nothing Glyphs", "Декоративные точечные глифы в интерфейсе VTok", nothingGlyphs, accent, surfaceColor, borderColor, onNothingGlyphs) }
+            item { ToggleCard("Защита OLED", "Сдвигает центральные элементы ленты VTok на 1 dp каждые 45 секунд. Не влияет на экран самого TikTok.", oledProtection, accent, surfaceColor, borderColor, onOledProtection) }
+            item {
+                SettingsCard(surfaceColor, borderColor) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text("Страна / регион", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text("Выбор сохраняется локально. Пока это настройка VTok, она не меняет регион аккаунта, SIM или IP TikTok.", color = Muted, fontSize = 12.sp, lineHeight = 16.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Box {
+                            OutlinedButton(onClick = { showRegionOptions = true }) { Text(selectedRegion, color = Color.White); Spacer(Modifier.width(8.dp)); Text("⌄", color = accent) }
+                            DropdownMenu(expanded = showRegionOptions, onDismissRequest = { showRegionOptions = false }) {
+                                regions.forEach { region -> DropdownMenuItem(text = { Text(region) }, onClick = { onRegion(region); showRegionOptions = false }) }
+                            }
+                        }
+                    }
+                }
+            }
             item {
                 SettingsCard(surfaceColor, borderColor) {
                     Column(Modifier.padding(16.dp)) {
