@@ -46,7 +46,7 @@ jobs:
 
       - name: Validate source URL
         env:
-          ASSET_URL: ${{ inputs.asset_url }}
+          ASSET_URL: ${{ inputs.asset_url || 'https://d.apkpure.com/b/APK/com.zhiliaoapp.musically?versionCode=2024705030' }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -59,7 +59,7 @@ jobs:
 
       - name: Download and validate pinned TikTok APK
         env:
-          ASSET_URL: ${{ inputs.asset_url }}
+          ASSET_URL: ${{ inputs.asset_url || 'https://d.apkpure.com/b/APK/com.zhiliaoapp.musically?versionCode=2024705030' }}
           EXPECTED_SHA256: ${{ env.EXPECTED_SOURCE_SHA256 }}
         run: |
           set -euo pipefail
