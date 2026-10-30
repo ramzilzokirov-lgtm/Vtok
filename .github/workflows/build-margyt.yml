@@ -151,7 +151,7 @@ jobs:
           } | tee build-report.txt
 
       - name: Upload evaluation APK and reports
-        if: always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: vtok-margyt-based-evaluation
