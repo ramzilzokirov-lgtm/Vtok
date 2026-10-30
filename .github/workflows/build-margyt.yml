@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       asset_url:
-        description: "Direct HTTPS URL of a compatible universal arm64-v8a TikTok APK (APK file, not split APK or bundle)"
-        required: true
+        description: "Direct HTTPS URL to TikTok universal APK. Defaults to the pinned TikTok 47.5.3 APK."
+        required: false
+        default: "https://d.apkpure.com/b/APK/com.zhiliaoapp.musically?versionCode=2024705030"
         type: string
 
 permissions:
@@ -15,11 +16,14 @@ concurrency:
   group: vtok-margyt-evaluation
   cancel-in-progress: false
 
+env:
+  EXPECTED_SOURCE_SHA256: "6670ca3f93bfea379658cad3c27f05d3a380b23a0d82569cce684b7453e8ff3e"
+
 jobs:
   patch:
-    name: Patch and validate user-supplied APK
+    name: Patch and validate TikTok 47.5.3 with MargyT
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - name: Checkout VTok
         uses: actions/checkout@v4
@@ -48,14 +52,20 @@ jobs:
               raise SystemExit("asset_url must be a valid HTTPS URL")
           PY
 
-      - name: Download and validate source APK
+      - name: Download and validate pinned TikTok APK
         env:
           ASSET_URL: ${{ inputs.asset_url }}
+          EXPECTED_SHA256: ${{ env.EXPECTED_SOURCE_SHA256 }}
         run: |
           set -euo pipefail
           curl --fail --location --retry 3 --retry-all-errors --connect-timeout 30 --max-time 2400 "$ASSET_URL" -o source.apk
           test -s source.apk
-          sha256sum source.apk | tee source-sha256.txt
+          actual="$(sha256sum source.apk | cut -d' ' -f1)"
+          echo "$actual  source.apk" | tee source-sha256.txt
+          if [ "$actual" != "$EXPECTED_SHA256" ]; then
+            echo "::error::Downloaded APK is not the pinned TikTok 47.5.3 build. Expected $EXPECTED_SHA256, got $actual"
+            exit 1
+          fi
           python - <<'PY'
           import zipfile
           with zipfile.ZipFile("source.apk") as z:
@@ -67,7 +77,10 @@ jobs:
                   raise SystemExit("Missing AndroidManifest.xml")
               if not any(n.endswith(".dex") for n in names):
                   raise SystemExit("No DEX files found")
-          print("Source APK ZIP integrity: PASS")
+              libs = {n.split("/")[1] for n in names if n.startswith("lib/") and n.count("/") >= 2}
+              if not {"arm64-v8a", "armeabi-v7a"}.issubset(libs):
+                  raise SystemExit("Expected universal APK with arm64-v8a and armeabi-v7a native libraries")
+          print("Pinned source APK SHA-256, ZIP integrity, DEX, and universal ABI checks: PASS")
           PY
 
       - name: Fetch upstream MargyT source
@@ -85,14 +98,16 @@ jobs:
           python --version
           echo "Upstream source files, license notices, and Python syntax: PASS"
 
-      - name: Patch source APK
+      - name: Patch source APK with MargyT
+        env:
+          MARGYT_WORKERS: "2"
         run: |
           set -euo pipefail
           mkdir -p build
           cd upstream
           python -m margyt ../source.apk --no-push --accent FFC857 -o ../build/vtok-margyt-based-evaluation.apk
 
-      - name: Validate patched APK
+      - name: Validate patched APK and write report
         run: |
           set -euo pipefail
           test -s build/vtok-margyt-based-evaluation.apk
@@ -112,7 +127,8 @@ jobs:
           PY
           sha256sum build/vtok-margyt-based-evaluation.apk | tee patched-apk-sha256.txt
           {
-            echo "Build result: PASS"
+            echo "Build result: PASS (archive validation only; not device-tested)"
+            echo "Target: TikTok 47.5.3 universal APK"
             echo "Branding: VTok-based evaluation build"
             echo "Upstream: MargyT (GPL-3.0 with ADDITIONAL-TERMS.md)"
             echo "Source APK SHA-256: $(cut -d' ' -f1 source-sha256.txt)"
