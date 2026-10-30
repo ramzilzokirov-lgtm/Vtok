@@ -1,6 +1,11 @@
 name: Build MargyT-based APK for VTok evaluation
 
 on:
+  push:
+    branches:
+      - margyt-import
+    paths:
+      - .github/workflows/build-margyt.yml
   workflow_dispatch:
     inputs:
       asset_url:
