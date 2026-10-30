@@ -23,6 +23,10 @@ The workflow fetches the upstream MargyT source from its original repository, ch
 
 The evaluation build runs the upstream MargyT patcher, which includes its in-app SIM/carrier/system-region selector. After a successful patch, look under TikTok's **Settings and privacy → MargyT** (the exact row label follows the upstream build) for the region settings. The selected region changes local region signals used by TikTok; it does not change the public IP address, the account's server-side registration/store region, or guarantee access to every regional feature. A VPN/proxy is a separate network setting. The selected APK version must still pass the patcher's compatibility checks; TikTok v47.5.3 has not yet been successfully patched or runtime-tested in this project.
 
+## UI work in the current prototype
+
+The settings screen now has a local country/region preference, a Nothing-inspired glyph toggle, and an OLED-shift preview. These settings are implemented in the standalone Compose prototype only: the region choice is stored locally and does **not** alter TikTok's SIM/carrier hooks, account region, or network IP. The OLED shift currently moves the prototype feed content by 1 dp every 45 seconds; it does not modify the separately patched TikTok UI. Do not treat these preview settings as proof that the corresponding MargyT hooks have been transferred to TikTok.
+
 ## Upstream attribution and license
 
 This project uses and evaluates [MargyT](https://git.narez.xyz/narezany/MargyT), licensed under GPL-3.0 with additional terms in its `ADDITIONAL-TERMS.md`. Any redistributed modified version must comply with the GPL and those additional terms, including keeping the author's legal-notice section visible and working and clearly stating that the modified build is not from the MargyT author. VTok must not present the MargyT name or icon as its own branding.
